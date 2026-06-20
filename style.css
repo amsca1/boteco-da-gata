@@ -1,0 +1,381 @@
+/* --- CONFIGURAÇÕES GERAIS E PALETA DARK PUB --- */
+:root {
+    --bg-main: #121214;
+    --bg-card: #1a1a1e;
+    --bg-input: #26262b;
+    --border-color: #323238;
+    --text-main: #e1e1e6;
+    --text-muted: #a4a4ac;
+    --primary: #4e59ff;
+    --primary-hover: #3b44d1;
+    --accent: #ff9f1c;
+    --accent-hover: #f39c12;
+    --success: #00b37e;
+    --success-hover: #00875f;
+    --danger: #f75a68;
+    --danger-hover: #cc4350;
+    --gold: #fdca40;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    padding: 20px;
+    font-size: 14px;
+}
+
+.app-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* --- CABEÇALHO --- */
+#cabecalho-estabelecimento {
+    background: linear-gradient(135deg, #1f1c2c, #3a1c41);
+    border: 1px solid var(--border-color);
+    padding: 20px 30px;
+    margin-bottom: 25px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between; 
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.logo-area {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.icon-beer {
+    font-size: 2.5rem;
+}
+
+#nome-estabelecimento {
+    color: var(--gold);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+#contatos-estabelecimento p {
+    color: var(--text-muted);
+}
+
+#contatos-estabelecimento strong {
+    color: var(--accent);
+}
+
+/* --- GRID LAYOUT --- */
+.main-layout {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 25px;
+}
+
+@media (max-width: 1024px) {
+    .main-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- COMPONENTES DOS CARDS --- */
+.card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.card.principal {
+    border-left: 4px solid var(--accent);
+}
+
+.card h2 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #fff;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.card h3 {
+    font-size: 1.05rem;
+    font-weight: 500;
+    margin: 20px 0 10px 0;
+    color: var(--text-muted);
+}
+
+/* --- FORMULÁRIOS, INPUTS E SELETORES --- */
+.input-group, .adicionar-produto-zone {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+input[type="text"], 
+input[type="number"], 
+textarea, 
+select {
+    width: 100%;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(255, 159, 28, 0.2);
+}
+
+.select-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+textarea {
+    resize: vertical;
+}
+
+/* --- BOTÕES --- */
+button {
+    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s, transform 0.1s;
+    font-size: 0.95rem;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+.btn-primary { background-color: var(--primary); color: white; width: 100%; }
+.btn-primary:hover { background-color: var(--primary-hover); }
+
+.btn-accent { background-color: var(--accent); color: #121214; }
+.btn-accent:hover { background-color: var(--accent-hover); }
+
+.btn-success { background-color: var(--success); color: white; }
+.btn-success:hover { background-color: var(--success-hover); }
+
+.btn-remover {
+    padding: 5px 10px;
+    background-color: rgba(247, 90, 104, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(247, 90, 104, 0.2);
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+.btn-remover:hover {
+    background-color: var(--danger);
+    color: white;
+}
+
+/* --- LISTAS CUSTOMIZADAS --- */
+.custom-list {
+    list-style: none;
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: rgba(0,0,0,0.1);
+}
+
+.custom-list li {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.custom-list li:last-child {
+    border-bottom: none;
+}
+
+.mesas-list li {
+    cursor: pointer;
+    transition: background-color 0.2s, border-left 0.2s;
+    border-left: 3px solid transparent;
+}
+
+.mesas-list li:hover {
+    background-color: rgba(78, 89, 255, 0.15);
+    border-left: 3px solid var(--primary);
+}
+
+.mesas-list li:active {
+    transform: scale(0.98);
+}
+
+/* --- PAINEL DE CONTROLE DE VENDAS --- */
+.status-badge {
+    background-color: rgba(78, 89, 255, 0.15);
+    color: #9aa1ff;
+    padding: 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    border: 1px solid rgba(78, 89, 255, 0.3);
+    text-align: center;
+}
+
+.adicionar-produto-zone {
+    display: grid;
+    grid-template-columns: 1fr 100px auto;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+/* --- TABELAS --- */
+.table-responsive {
+    overflow-x: auto;
+    margin: 15px 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+th {
+    background-color: #202024;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+td {
+    color: #fff;
+}
+
+/* --- ZONA DE CHECKOUT DO PEDIDO --- */
+.checkout-box {
+    background-color: #202024;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 25px;
+}
+
+.subtotal-row, .total-row, .pagamento-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.subtotal-row span:first-child { color: var(--text-muted); }
+#subtotal-bruto { font-size: 1.15rem; color: #fff; font-weight: 500;}
+
+.taxas-info {
+    border-top: 1px dashed var(--border-color);
+    border-bottom: 1px dashed var(--border-color);
+    padding: 12px 0;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+#taxa-aplicada { color: var(--danger); font-weight: 500; }
+#valor-taxa { color: var(--text-main); }
+
+.total-row {
+    margin-top: 5px;
+    margin-bottom: 25px;
+}
+.total-row span:first-child { font-size: 1.3rem; font-weight: 600; color: #fff; }
+#total-final { font-size: 1.8rem; font-weight: 700; color: var(--gold); }
+
+.btn-checkout {
+    background: linear-gradient(90deg, #00b37e, #029469);
+    color: white;
+    width: 100%;
+    padding: 16px;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 179, 126, 0.3);
+}
+.btn-checkout:hover { background: var(--success-hover); }
+
+/* --- HISTÓRICO --- */
+.historico-list {
+    list-style: none;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.historico-list li {
+    background-color: rgba(0,0,0,0.15);
+    border: 1px solid var(--border-color);
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+/* --- TOAST SYSTEM (SISTEMA DE AVISOS) --- */
+#toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    background-color: #202024;
+    color: #fff;
+    padding: 16px 24px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    border-left: 4px solid var(--primary);
+    min-width: 300px;
+    font-weight: 500;
+    animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.toast.success { border-left-color: var(--success); }
+.toast.error { border-left-color: var(--danger); }
+.toast.warning { border-left-color: var(--accent); }
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
