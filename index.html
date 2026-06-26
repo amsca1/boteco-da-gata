@@ -32,9 +32,27 @@
 </head>
 <body>
 
+    <!-- ===================== MENU LATERAL (HAMBÚRGUER) ===================== -->
+    <nav id="drawer-menu" class="drawer-menu">
+        <div class="drawer-header">
+            <span class="icon-beer">🍺</span>
+            <h2>Boteco da Gata</h2>
+        </div>
+        <ul class="drawer-links">
+            <li><button class="drawer-link active" data-view="vendas">🛒 Vendas</button></li>
+            <li><button class="drawer-link" data-view="cadastro">📦 Cadastro de Produtos</button></li>
+            <li><button class="drawer-link" data-view="estoque">📊 Estoque</button></li>
+            <li><button class="drawer-link" data-view="relatorio">📈 Relatório</button></li>
+        </ul>
+    </nav>
+    <div id="drawer-overlay" class="drawer-overlay"></div>
+
     <div class="app-container">
-        
+
         <header id="cabecalho-estabelecimento">
+            <button id="btn-menu-toggle" class="menu-toggle" aria-label="Abrir menu">
+                <span></span><span></span><span></span>
+            </button>
             <div class="logo-area">
                 <span class="icon-beer">🍺</span>
                 <h1 id="nome-estabelecimento">Boteco da Gata</h1>
@@ -44,116 +62,248 @@
             </div>
         </header>
 
-        <div class="main-layout">
-            
-            <div class="sidebar-column">
-                
-                <section id="cadastro-mesas" class="card">
-                    <h2>🪑 Cadastro de Mesas</h2>
-                    <div class="input-group">
-                        <input type="text" id="nome-mesa" placeholder="Nome ou Número da Mesa">
-                        <button id="btn-cadastrar-mesa" class="btn-primary">Cadastrar Mesa</button>
-                    </div>
-                    <h3>Selecione para Abrir 👇</h3>
-                    <ul id="lista-mesas" class="custom-list mesas-list"></ul> 
-                </section>
+        <!-- ===================== VIEW: VENDAS (TELA PRINCIPAL) ===================== -->
+        <div id="view-vendas" class="view active">
+            <div class="main-layout">
 
-                <section id="cadastro-itens" class="card">
+                <div class="sidebar-column">
+
+                    <section id="cadastro-mesas" class="card">
+                        <h2>🪑 Cadastro de Mesas</h2>
+                        <div class="input-group">
+                            <input type="text" id="nome-mesa" placeholder="Nome ou Número da Mesa">
+                            <button id="btn-cadastrar-mesa" class="btn-primary">Cadastrar Mesa</button>
+                        </div>
+                        <h3>Selecione para Abrir 👇</h3>
+                        <ul id="lista-mesas" class="custom-list mesas-list"></ul> 
+                    </section>
+
+                </div>
+
+                <div class="content-column">
+
+                    <section id="registro-vendas" class="card principal">
+                        <h2>💰 Painel de Vendas da Mesa</h2>
+
+                        <div id="mesa-ativa-status" class="status-badge">Nenhuma mesa ativa. Clique em uma mesa ao lado para começar.</div>
+
+                        <div class="form-group">
+                            <label for="descricao-mesa">Descrição / Anotações da Mesa:</label>
+                            <textarea id="descricao-mesa" placeholder="Anotações, detalhes do cliente, fiado, etc." rows="2"></textarea>
+                        </div>
+
+                        <div class="adicionar-produto-zone">
+                            <div class="select-wrapper">
+                                <select id="select-produto">
+                                    <option value="">-- Selecione um Produto --</option>
+                                </select>
+                            </div>
+                            <input type="number" id="quantidade" placeholder="Qtd" min="1" value="1">
+                            <button id="btn-adicionar" class="btn-success">Adicionar à Venda</button>
+                        </div>
+
+                        <h3>📋 Detalhes do Pedido Atual</h3>
+                        <div class="table-responsive">
+                            <table id="tabela-venda">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Qtd</th>
+                                        <th>Preço</th>
+                                        <th>Total R$</th>
+                                        <th style="text-align: center;">Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="checkout-box">
+                            <div class="subtotal-row">
+                                <span>Subtotal (Bruto):</span>
+                                <span id="subtotal-bruto">R$ 0.00</span>
+                            </div>
+
+                            <div class="pagamento-row">
+                                <label>Forma de Pagamento:</label>
+                                <div class="select-wrapper short">
+                                    <select id="select-forma-pagamento">
+                                        <option value="dinheiro">Dinheiro (0,00% Taxa)</option>
+                                        <option value="debito">Débito (1,99% Taxa)</option>
+                                        <option value="credito">Crédito (4,98% Taxa)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="troco-row" style="display: none; flex-direction: column; gap: 8px; margin-bottom: 15px; background-color: rgba(0,0,0,0.15); padding: 12px; border-radius: 6px; border: 1px dashed var(--border-color);">
+                                <label for="valor-entregue" style="color: var(--text-muted);">Troco para?</label>
+                                <input type="number" id="valor-entregue" placeholder="Ex: 50.00" min="0" step="0.01">
+                                <div id="resultado-troco" style="font-size: 0.95rem; margin-top: 5px;"></div>
+                            </div>
+
+                            <div class="taxas-info">
+                                <p>Taxa Aplicada: <span id="taxa-aplicada">0,00%</span></p>
+                                <p>Valor da Taxa: <span id="valor-taxa">R$ 0.00</span></p>
+                            </div>
+
+                            <div class="total-row">
+                                <span>Total Final:</span>
+                                <span id="total-final">R$ 0.00</span>
+                            </div>
+                            
+                            <button id="btn-finalizar" class="btn-checkout">Finalizar Venda e Fechar Mesa</button>
+                        </div>
+                    </section>
+
+                    <section id="historico" class="card">
+                        <h2>📜 Histórico Recente de Vendas</h2>
+                        <ul id="lista-historico" class="historico-list"></ul>
+                    </section>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ===================== VIEW: CADASTRO DE PRODUTOS ===================== -->
+        <div id="view-cadastro" class="view">
+            <div class="single-column">
+                <section id="cadastro-produtos" class="card">
                     <h2>📦 Cadastro de Produtos</h2>
-                    <div class="input-group">
-                        <input type="text" id="nome-item" placeholder="Nome do Produto">
-                        <input type="number" id="preco-item" placeholder="Preço Unitário" min="0" step="0.01">
-                        <button id="btn-cadastrar" class="btn-primary">Cadastrar Item</button>
+
+                    <div class="form-grid-cadastro">
+                        <div class="form-group">
+                            <label for="cad-nome">Nome do Produto</label>
+                            <input type="text" id="cad-nome" placeholder="Ex: Skol, Heineken, Coca-Cola...">
+                        </div>
+                        <div class="form-group">
+                            <label for="cad-tamanho">Tamanho</label>
+                            <select id="cad-tamanho">
+                                <option value="">-- Selecione --</option>
+                                <option value="Lata">Lata</option>
+                                <option value="Latinha">Latinha</option>
+                                <option value="Latão">Latão</option>
+                                <option value="250ml">250ml</option>
+                                <option value="600ml">600ml</option>
+                                <option value="1L">1L</option>
+                                <option value="2L">2L</option>
+                                <option value="2,5L">2,5L</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="cad-unid-caixa">Unidades por Caixa (CX)</label>
+                            <input type="number" id="cad-unid-caixa" min="1" placeholder="Ex: 24">
+                            <small class="hint">Preenchido automaticamente — ajuste se a caixa do seu fornecedor for diferente.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="cad-valor-venda">Valor de Venda (por Unidade)</label>
+                            <input type="number" id="cad-valor-venda" min="0" step="0.01" placeholder="Ex: 6.00">
+                        </div>
                     </div>
-                    <h3>Itens Cadastrados</h3>
+
+                    <button id="btn-cadastrar" class="btn-primary">Cadastrar Produto</button>
+
+                    <h3>Produtos Cadastrados</h3>
                     <ul id="lista-produtos" class="custom-list"></ul>
                 </section>
-                
             </div>
+        </div>
 
-            <div class="content-column">
-                
-                <section id="registro-vendas" class="card principal">
-                    <h2>💰 Painel de Vendas da Mesa</h2>
+        <!-- ===================== VIEW: ESTOQUE ===================== -->
+        <div id="view-estoque" class="view">
+            <div class="single-column">
 
-                    <div id="mesa-ativa-status" class="status-badge">Nenhuma mesa ativa. Clique em uma mesa ao lado para começar.</div>
+                <section id="entrada-estoque" class="card principal">
+                    <h2>📥 Registrar Compra (Entrada de Estoque)</h2>
 
-                    <div class="form-group">
-                        <label for="descricao-mesa">Descrição / Anotações da Mesa:</label>
-                        <textarea id="descricao-mesa" placeholder="Anotações, detalhes do cliente, fiado, etc." rows="2"></textarea>
-                    </div>
-
-                    <div class="adicionar-produto-zone">
-                        <div class="select-wrapper">
-                            <select id="select-produto">
+                    <div class="form-grid-cadastro">
+                        <div class="form-group">
+                            <label for="est-produto">Produto</label>
+                            <select id="est-produto">
                                 <option value="">-- Selecione um Produto --</option>
                             </select>
                         </div>
-                        <input type="number" id="quantidade" placeholder="Qtd" min="1" value="1">
-                        <button id="btn-adicionar" class="btn-success">Adicionar à Venda</button>
+                        <div class="form-group">
+                            <label for="est-qtd-caixas">Quantidade de Caixas (CX)</label>
+                            <input type="number" id="est-qtd-caixas" min="1" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="est-valor-caixa">Valor Pago por Caixa (R$)</label>
+                            <input type="number" id="est-valor-caixa" min="0" step="0.01" placeholder="Ex: 60.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="est-valor-venda">Valor de Venda por Unidade (R$)</label>
+                            <input type="number" id="est-valor-venda" min="0" step="0.01" placeholder="Ex: 6.00">
+                        </div>
                     </div>
 
-                    <h3>📋 Detalhes do Pedido Atual</h3>
+                    <div id="est-preview" class="estoque-preview">
+                        <p style="color: var(--text-muted)">Selecione um produto e informe os valores para ver a estimativa de lucro.</p>
+                    </div>
+
+                    <button id="btn-registrar-estoque" class="btn-success">Registrar Entrada</button>
+                </section>
+
+                <section id="estoque-atual" class="card">
+                    <h2>📊 Estoque Atual</h2>
                     <div class="table-responsive">
-                        <table id="tabela-venda">
+                        <table id="tabela-estoque">
                             <thead>
                                 <tr>
-                                    <th>Item</th>
-                                    <th>Qtd</th>
-                                    <th>Preço</th>
-                                    <th>Total R$</th>
-                                    <th style="text-align: center;">Ação</th>
+                                    <th>Produto</th>
+                                    <th>Tamanho</th>
+                                    <th>Un./CX</th>
+                                    <th>Estoque (un.)</th>
+                                    <th>Estoque (≈CX)</th>
+                                    <th>Preço Venda</th>
+                                    <th>Valor Potencial</th>
                                 </tr>
                             </thead>
                             <tbody></tbody>
                         </table>
                     </div>
-                    
-                    <div class="checkout-box">
-                        <div class="subtotal-row">
-                            <span>Subtotal (Bruto):</span>
-                            <span id="subtotal-bruto">R$ 0.00</span>
-                        </div>
-
-                        <div class="pagamento-row">
-                            <label>Forma de Pagamento:</label>
-                            <div class="select-wrapper short">
-                                <select id="select-forma-pagamento">
-                                    <option value="dinheiro">Dinheiro (0,00% Taxa)</option>
-                                    <option value="debito">Débito (1,99% Taxa)</option>
-                                    <option value="credito">Crédito (4,98% Taxa)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div id="troco-row" style="display: none; flex-direction: column; gap: 8px; margin-bottom: 15px; background-color: rgba(0,0,0,0.15); padding: 12px; border-radius: 6px; border: 1px dashed var(--border-color);">
-                            <label for="valor-entregue" style="color: var(--text-muted);">Troco para?</label>
-                            <input type="number" id="valor-entregue" placeholder="Ex: 50.00" min="0" step="0.01">
-                            <div id="resultado-troco" style="font-size: 0.95rem; margin-top: 5px;"></div>
-                        </div>
-
-                        <div class="taxas-info">
-                            <p>Taxa Aplicada: <span id="taxa-aplicada">0,00%</span></p>
-                            <p>Valor da Taxa: <span id="valor-taxa">R$ 0.00</span></p>
-                        </div>
-
-                        <div class="total-row">
-                            <span>Total Final:</span>
-                            <span id="total-final">R$ 0.00</span>
-                        </div>
-                        
-                        <button id="btn-finalizar" class="btn-checkout">Finalizar Venda e Fechar Mesa</button>
-                    </div>
                 </section>
 
-                <section id="historico" class="card">
-                    <h2>📜 Histórico Recente de Vendas</h2>
-                    <ul id="lista-historico" class="historico-list"></ul>
+                <section id="historico-compras" class="card">
+                    <h2>🧾 Histórico de Compras</h2>
+                    <ul id="lista-historico-compras" class="historico-list"></ul>
                 </section>
 
             </div>
-
         </div>
+
+        <!-- ===================== VIEW: RELATÓRIO ===================== -->
+        <div id="view-relatorio" class="view">
+            <div class="single-column">
+
+                <section id="resumo-geral" class="card principal">
+                    <h2>📈 Relatório Geral</h2>
+                    <div id="resumo-relatorio" class="resumo-grid"></div>
+                    <small class="hint">O lucro estimado considera o total já vendido (líquido) menos o total já investido em compras de estoque — inclui produtos que ainda não foram totalmente vendidos.</small>
+                </section>
+
+                <section id="desempenho-produtos" class="card">
+                    <h2>📦 Desempenho por Produto</h2>
+                    <div class="table-responsive">
+                        <table id="tabela-relatorio-produtos">
+                            <thead>
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Vendido (un.)</th>
+                                    <th>Receita Vendida</th>
+                                    <th>Comprado (un.)</th>
+                                    <th>Valor Investido</th>
+                                    <th>Lucro Estimado</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+
     </div>
 
     <div id="toast-container"></div>
