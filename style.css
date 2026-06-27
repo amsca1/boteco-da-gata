@@ -390,19 +390,109 @@ button:active {
     border-bottom: none;
 }
 
+/* --- GRID DE MESAS (QUADRADOS) --- */
+.mesas-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    max-height: 320px;
+    border: none;
+    background-color: transparent;
+    padding: 4px;
+}
+
 .mesas-list li {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+    padding: 8px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
     cursor: pointer;
-    transition: background-color 0.2s, border-left 0.2s;
-    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
 }
 
 .mesas-list li:hover {
     background-color: rgba(78, 89, 255, 0.15);
-    border-left: 3px solid var(--primary);
+    border-color: var(--primary);
+    transform: translateY(-2px);
 }
 
 .mesas-list li:active {
-    transform: scale(0.98);
+    transform: scale(0.96);
+}
+
+.mesas-list li.mesa-aberta {
+    border-color: var(--accent);
+    background-color: rgba(255, 159, 28, 0.08);
+}
+
+.mesas-list li .mesa-nome {
+    font-weight: 600;
+    color: #fff;
+    font-size: 0.9rem;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.mesas-list li .mesa-status {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+.mesas-list li .btn-remover-mesa {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border-radius: 50%;
+    background-color: rgba(247, 90, 104, 0.15);
+    color: var(--danger);
+    border: none;
+    font-size: 0.65rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.mesas-list li:hover .btn-remover-mesa {
+    opacity: 1;
+}
+
+.mesas-list li.mesa-vazia {
+    grid-column: 1 / -1;
+    aspect-ratio: auto;
+    cursor: default;
+    color: var(--text-muted);
+    background-color: transparent;
+    border-style: dashed;
+}
+
+.mesas-list li.mesa-vazia:hover {
+    transform: none;
+    border-color: var(--border-color);
+    background-color: transparent;
+}
+
+.mesas-list li:last-child {
+    border-bottom: 1px solid var(--border-color);
+}
+
+@media (max-width: 480px) {
+    .mesas-list {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 /* --- PAINEL DE CONTROLE DE VENDAS --- */
