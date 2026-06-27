@@ -1,826 +1,724 @@
-const STORE_PRODUTOS = 'produtos';
-const STORE_VENDAS = 'vendas';
-const STORE_MESAS = 'mesas';
-const STORE_ESTOQUE = 'estoque';
-
-const TAXA_DEBITO = 0.0199;  // 1.99%
-const TAXA_CREDITO = 0.0530; // 4.98%
-
-// Unidades por caixa sugeridas por tamanho (padrão de mercado).
-// O usuário pode ajustar esse valor manualmente no cadastro do produto.
-const UNIDADES_PADRAO_POR_TAMANHO = {
-    'Lata': 24,
-    'Latinha': 12,
-    'Latão': 12,
-    '250ml': 12,
-    '600ml': 24,
-    '1L': 12,
-    '2L': 6,
-    '2,5L': 6
-};
-
-let mesasCadastradas = [];
-let produtosCadastrados = [];
-let mesaAtiva = null;
-let vendaAtual = [];
-let subtotalBruto = 0.0;
-
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-    container.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transition = 'opacity 0.5s ease';
-        setTimeout(() => toast.remove(), 500);
-    }, 4000);
+/* --- CONFIGURAÇÕES GERAIS E PALETA DARK PUB --- */
+:root {
+    --bg-main: #121214;
+    --bg-card: #1a1a1e;
+    --bg-input: #26262b;
+    --border-color: #323238;
+    --text-main: #e1e1e6;
+    --text-muted: #a4a4ac;
+    --primary: #4e59ff;
+    --primary-hover: #3b44d1;
+    --accent: #ff9f1c;
+    --accent-hover: #f39c12;
+    --success: #00b37e;
+    --success-hover: #00875f;
+    --danger: #f75a68;
+    --danger-hover: #cc4350;
+    --gold: #fdca40;
 }
 
-// =========================================================
-// 1. FUNÇÕES DO REALTIME DATABASE
-// =========================================================
-function snapshotToArray(snapshot) {
-    const list = [];
-    snapshot.forEach((childSnapshot) => {
-        list.push({ id: childSnapshot.key, ...childSnapshot.val() });
-    });
-    return list;
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
 }
 
-async function inserirDados(collectionName, data) { return db.ref(collectionName).push(data); }
-async function atualizarDados(collectionName, id, data) { return db.ref(`${collectionName}/${id}`).set(data); }
-async function deletarDados(collectionName, id) { return db.ref(`${collectionName}/${id}`).remove(); }
+body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    padding: 20px;
+    font-size: 14px;
+}
 
-async function consultarTodos(collectionName) {
-    try {
-        const snapshot = await db.ref(collectionName).once('value');
-        if (snapshot.exists()) return snapshotToArray(snapshot);
-        return [];
-    } catch (error) {
-        console.error(`Erro ao consultar coleção ${collectionName}:`, error);
-        return [];
+.app-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* --- CABEÇALHO --- */
+#cabecalho-estabelecimento {
+    background: linear-gradient(135deg, #1f1c2c, #3a1c41);
+    border: 1px solid var(--border-color);
+    padding: 20px 30px;
+    margin-bottom: 25px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.logo-area {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.icon-beer {
+    font-size: 2.5rem;
+}
+
+#nome-estabelecimento {
+    color: var(--gold);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+#contatos-estabelecimento {
+    margin-left: auto;
+    text-align: right;
+}
+
+#contatos-estabelecimento p {
+    color: var(--text-muted);
+}
+
+#contatos-estabelecimento strong {
+    color: var(--accent);
+}
+
+/* --- MENU HAMBÚRGUER --- */
+.menu-toggle {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border-color);
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+}
+
+.menu-toggle span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background-color: var(--gold);
+    border-radius: 2px;
+    transition: all 0.2s ease;
+}
+
+.menu-toggle:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: var(--accent);
+}
+
+/* --- DRAWER LATERAL --- */
+.drawer-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 300px;
+    max-width: 85vw;
+    background-color: var(--bg-card);
+    border-right: 1px solid var(--border-color);
+    box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+    z-index: 1001;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.drawer-menu.open {
+    transform: translateX(0);
+}
+
+.drawer-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 25px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(135deg, #1f1c2c, #3a1c41);
+}
+
+.drawer-header h2 {
+    color: var(--gold);
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.drawer-links {
+    list-style: none;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.drawer-link {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    color: var(--text-main);
+    padding: 14px 16px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    border-left: 3px solid transparent;
+}
+
+.drawer-link:hover {
+    background-color: rgba(255,255,255,0.06);
+}
+
+.drawer-link.active {
+    background-color: rgba(78, 89, 255, 0.18);
+    color: #9aa1ff;
+    border-left: 3px solid var(--primary);
+}
+
+.drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0,0,0,0.6);
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+
+.drawer-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* --- CONTROLE DE VIEWS (PÁGINAS) --- */
+.view {
+    display: none;
+}
+
+.view.active {
+    display: block;
+}
+
+.single-column {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* --- GRID LAYOUT (VENDAS) --- */
+.main-layout {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 25px;
+}
+
+@media (max-width: 1024px) {
+    .main-layout {
+        grid-template-columns: 1fr;
     }
 }
 
-// =========================================================
-// 2. MENU LATERAL (HAMBÚRGUER) E NAVEGAÇÃO ENTRE VIEWS
-// =========================================================
-function abrirMenu() {
-    document.getElementById('drawer-menu').classList.add('open');
-    document.getElementById('drawer-overlay').classList.add('open');
+/* --- COMPONENTES DOS CARDS --- */
+.card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 }
 
-function fecharMenu() {
-    document.getElementById('drawer-menu').classList.remove('open');
-    document.getElementById('drawer-overlay').classList.remove('open');
+.card.principal {
+    border-left: 4px solid var(--accent);
 }
 
-async function mudarView(viewName) {
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById(`view-${viewName}`).classList.add('active');
-    document.querySelectorAll('.drawer-link').forEach(link => {
-        link.classList.toggle('active', link.dataset.view === viewName);
-    });
-    fecharMenu();
+.card h2 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #fff;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
 
-    if (viewName === 'estoque') {
-        await carregarEAtualizarEstoque();
-    } else if (viewName === 'relatorio') {
-        await carregarEAtualizarRelatorio();
+.card h3 {
+    font-size: 1.05rem;
+    font-weight: 500;
+    margin: 20px 0 10px 0;
+    color: var(--text-muted);
+}
+
+/* --- FORMULÁRIOS, INPUTS E SELETORES --- */
+.input-group, .adicionar-produto-zone {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+input[type="text"], 
+input[type="number"], 
+textarea, 
+select {
+    width: 100%;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(255, 159, 28, 0.2);
+}
+
+.select-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+textarea {
+    resize: vertical;
+}
+
+/* --- FORMULÁRIO EM GRID (CADASTRO / ESTOQUE) --- */
+.form-grid-cadastro {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 600px) {
+    .form-grid-cadastro {
+        grid-template-columns: 1fr;
     }
 }
 
-// =========================================================
-// 3. FUNÇÕES DE PRODUTOS (CADASTRO)
-// =========================================================
-async function carregarEAtualizarProdutos() {
-    produtosCadastrados = await consultarTodos(STORE_PRODUTOS);
-    renderizarProdutos(produtosCadastrados);
-    popularSeletorVendas(produtosCadastrados);
-    popularSeletorEstoque(produtosCadastrados);
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 15px;
 }
 
-function renderizarProdutos(produtos) {
-    const listaUl = document.getElementById('lista-produtos');
-    listaUl.innerHTML = '';
-    if (produtos.length === 0) {
-        listaUl.innerHTML = '<li style="color: var(--text-muted)">Nenhum item cadastrado</li>';
-        return;
-    }
-    produtos.forEach(p => {
-        const tamanho = p.tamanho || '—';
-        const unid = p.unidadesPorCaixa ? ` • CX c/ ${p.unidadesPorCaixa} un.` : '';
-        listaUl.innerHTML += `
-            <li>
-                <span><strong>${p.nome}</strong> <small style="color: var(--text-muted)">(${tamanho}${unid})</small><br>R$ ${p.preco.toFixed(2)} / unidade</span>
-                <button onclick="removerCadastroProduto('${p.id}')" class="btn-remover">Remover</button>
-            </li>
-        `;
-    });
+.form-grid-cadastro .form-group {
+    margin-bottom: 0;
 }
 
-async function removerCadastroProduto(id) {
-    if (!confirm("Tem certeza que deseja remover este produto?")) return;
-    try {
-        await deletarDados(STORE_PRODUTOS, id);
-        showToast("Produto removido com sucesso!", "success");
-        await carregarEAtualizarProdutos();
-    } catch (error) {
-        showToast("Erro ao remover produto.", "error");
-    }
+.form-group label {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
 }
 
-function aplicarUnidadesPadrao() {
-    const tamanho = document.getElementById('cad-tamanho').value;
-    const unidInput = document.getElementById('cad-unid-caixa');
-    if (tamanho && UNIDADES_PADRAO_POR_TAMANHO[tamanho]) {
-        unidInput.value = UNIDADES_PADRAO_POR_TAMANHO[tamanho];
-    }
+.hint {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    display: block;
+    margin-top: 2px;
 }
 
-async function cadastrarNovoProduto() {
-    const nomeInput = document.getElementById('cad-nome');
-    const tamanhoInput = document.getElementById('cad-tamanho');
-    const unidCaixaInput = document.getElementById('cad-unid-caixa');
-    const precoInput = document.getElementById('cad-valor-venda');
-
-    const nome = nomeInput.value.trim();
-    const tamanho = tamanhoInput.value;
-    const unidadesPorCaixa = parseInt(unidCaixaInput.value);
-    const preco = parseFloat(precoInput.value);
-
-    if (!nome || !tamanho || isNaN(unidadesPorCaixa) || unidadesPorCaixa <= 0 || isNaN(preco) || preco <= 0) {
-        showToast("Preencha nome, tamanho, unidades por caixa e o valor de venda.", "warning");
-        return;
-    }
-
-    try {
-        await inserirDados(STORE_PRODUTOS, { nome, tamanho, unidadesPorCaixa, preco });
-        nomeInput.value = '';
-        tamanhoInput.value = '';
-        unidCaixaInput.value = '';
-        precoInput.value = '';
-        showToast(`Produto "${nome}" cadastrado com sucesso!`, "success");
-        await carregarEAtualizarProdutos();
-    } catch (error) {
-        showToast("Erro ao cadastrar produto.", "error");
-    }
+/* --- BOTÕES --- */
+button {
+    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s, transform 0.1s;
+    font-size: 0.95rem;
 }
 
-function popularSeletorVendas(produtos) {
-    const select = document.getElementById('select-produto');
-    select.innerHTML = '<option value="">-- Selecione um Produto --</option>';
-    produtos.forEach(p => {
-        const option = document.createElement('option');
-        option.value = p.id;
-        const tamanho = p.tamanho ? ` - ${p.tamanho}` : '';
-        option.textContent = `${p.nome}${tamanho} (R$ ${p.preco.toFixed(2)})`;
-        select.appendChild(option);
-    });
+button:active {
+    transform: scale(0.98);
 }
 
-function popularSeletorEstoque(produtos) {
-    const select = document.getElementById('est-produto');
-    if (!select) return;
-    const valorAtual = select.value;
-    select.innerHTML = '<option value="">-- Selecione um Produto --</option>';
-    produtos.forEach(p => {
-        const option = document.createElement('option');
-        option.value = p.id;
-        option.textContent = `${p.nome} (${p.tamanho || '—'})`;
-        select.appendChild(option);
-    });
-    if (valorAtual) select.value = valorAtual;
+.btn-primary { background-color: var(--primary); color: white; width: 100%; }
+.btn-primary:hover { background-color: var(--primary-hover); }
+
+.btn-accent { background-color: var(--accent); color: #121214; }
+.btn-accent:hover { background-color: var(--accent-hover); }
+
+.btn-success { background-color: var(--success); color: white; width: 100%; }
+.btn-success:hover { background-color: var(--success-hover); }
+
+.btn-remover {
+    padding: 5px 10px;
+    background-color: rgba(247, 90, 104, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(247, 90, 104, 0.2);
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+.btn-remover:hover {
+    background-color: var(--danger);
+    color: white;
 }
 
-// =========================================================
-// 4. FUNÇÕES DE MESAS (CLICÁVEIS)
-// =========================================================
-async function carregarEAtualizarMesas() {
-    mesasCadastradas = await consultarTodos(STORE_MESAS);
-    renderizarMesas();
+/* --- LISTAS CUSTOMIZADAS --- */
+.custom-list {
+    list-style: none;
+    max-height: 220px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: rgba(0,0,0,0.1);
 }
 
-function renderizarMesas() {
-    const listaUl = document.getElementById('lista-mesas');
-    listaUl.innerHTML = '';
-    
-    if(mesasCadastradas.length === 0) {
-        listaUl.innerHTML = '<li style="color: var(--text-muted)">Nenhuma mesa cadastrada</li>';
-        return;
-    }
-
-    mesasCadastradas.forEach(m => {
-        const status = m.pedido && m.pedido.length > 0 ? '⚠️ ABERTA' : '✅ LIVRE';
-        
-        listaUl.innerHTML += `
-            <li onclick="abrirMesaDireto('${m.id}')" title="Clique para abrir o painel desta mesa">
-                <span><strong>${m.nome}</strong> <small style="margin-left: 8px; color: var(--text-muted)">[${status}]</small></span>
-                <button onclick="event.stopPropagation(); removerCadastroMesa('${m.id}')" class="btn-remover">Remover</button>
-            </li>
-        `;
-    });
+.custom-list li {
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
 }
 
-async function removerCadastroMesa(id) {
-    if (!confirm("Tem certeza que deseja remover esta mesa?")) return;
-    try {
-        await deletarDados(STORE_MESAS, id);
-        showToast("Mesa removida com sucesso!", "success");
-        
-        if (mesaAtiva && mesaAtiva.id === id) {
-            mesaAtiva = null;
-            vendaAtual = [];
-            document.getElementById('mesa-ativa-status').textContent = `Nenhuma mesa ativa. Clique em uma mesa ao lado para começar.`;
-            renderizarVendaAtual();
-        }
-        await carregarEAtualizarMesas();
-    } catch (error) {
-        showToast("Erro ao remover a mesa.", "error");
-    }
+.custom-list li:last-child {
+    border-bottom: none;
 }
 
-async function cadastrarNovaMesa() {
-    const mesaInput = document.getElementById('nome-mesa');
-    const nome = mesaInput.value.trim();
-    if (!nome) {
-        showToast("Por favor, preencha o nome da mesa.", "warning");
-        return;
-    }
-    try {
-        await inserirDados(STORE_MESAS, { nome, pedido: [], descricao: '' });
-        mesaInput.value = '';
-        showToast(`Mesa "${nome}" cadastrada com sucesso!`, "success");
-        await carregarEAtualizarMesas(); 
-    } catch (error) {
-        showToast("Erro ao cadastrar mesa.", "error");
-    }
+/* --- GRID DE MESAS (QUADRADOS) --- */
+.mesas-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    max-height: 320px;
+    border: none;
+    background-color: transparent;
+    padding: 4px;
 }
 
-function abrirMesaDireto(mesaId) {
-    const mesaSelecionada = mesasCadastradas.find(m => m.id === mesaId);
-    if (!mesaSelecionada) return;
-
-    mesaAtiva = mesaSelecionada;
-    vendaAtual = mesaAtiva.pedido || []; 
-
-    const descricaoMesaEl = document.getElementById('descricao-mesa');
-    descricaoMesaEl.value = mesaAtiva.descricao || '';
-    descricaoMesaEl.disabled = false;
-
-    document.getElementById('mesa-ativa-status').textContent = `📍 Mesa Aberta: ${mesaAtiva.nome}`;
-    document.getElementById('select-forma-pagamento').disabled = false;
-
-    renderizarVendaAtual();
-    calcularTotalPagamento(); 
-    
-    showToast(`Painel da ${mesaAtiva.nome} pronto para lançamentos!`, "success");
+.mesas-list li {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+    padding: 8px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-async function salvarDescricaoMesa() {
-    if (!mesaAtiva) return;
-    const novaDescricao = document.getElementById('descricao-mesa').value;
-    mesaAtiva.descricao = novaDescricao;
-    try {
-        await atualizarDados(STORE_MESAS, mesaAtiva.id, { ...mesaAtiva, descricao: novaDescricao });
-    } catch (error) {}
+.mesas-list li:hover {
+    background-color: rgba(78, 89, 255, 0.15);
+    border-color: var(--primary);
+    transform: translateY(-2px);
 }
 
-// =========================================================
-// 5. FUNÇÕES DO PAINEL DE VENDAS E TROCO
-// =========================================================
-async function adicionarItemVenda() {
-    if (!mesaAtiva) {
-        showToast("Por favor, clique em uma mesa na lista da esquerda primeiro!", "warning");
-        return;
-    }
-    const produtoId = document.getElementById('select-produto').value;
-    const quantidadeInput = document.getElementById('quantidade');
-    const quantidade = parseInt(quantidadeInput.value) || 1;
-
-    if (!produtoId || isNaN(quantidade) || quantidade <= 0) {
-        showToast("Selecione um produto e uma quantidade válida.", "warning");
-        return;
-    }
-
-    const produtosAtuais = await consultarTodos(STORE_PRODUTOS);
-    const produtoBase = produtosAtuais.find(p => p.id === produtoId);
-
-    if (!produtoBase) return;
-
-    const itemExistenteIndex = vendaAtual.findIndex(item => item.id === produtoId);
-
-    if (itemExistenteIndex > -1) {
-        const itemExistente = vendaAtual[itemExistenteIndex];
-        itemExistente.quantidade += quantidade;
-        itemExistente.totalItem = itemExistente.preco * itemExistente.quantidade;
-    } else {
-        const totalItem = produtoBase.preco * quantidade; 
-        vendaAtual.push({ ...produtoBase, quantidade, totalItem });
-    }
-
-    await salvarEstadoDaMesa(); 
-    renderizarVendaAtual();
-    quantidadeInput.value = 1; 
-    showToast("Item adicionado ao pedido!", "success");
+.mesas-list li:active {
+    transform: scale(0.96);
 }
 
-async function removerItemVenda(index) {
-    if (index > -1) {
-        vendaAtual.splice(index, 1);
-        await salvarEstadoDaMesa();
-        renderizarVendaAtual();
-        showToast("Item removido do pedido.", "info");
+.mesas-list li.mesa-aberta {
+    border-color: var(--accent);
+    background-color: rgba(255, 159, 28, 0.08);
+}
+
+.mesas-list li .mesa-nome {
+    font-weight: 600;
+    color: #fff;
+    font-size: 0.9rem;
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.mesas-list li .mesa-status {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+.mesas-list li .btn-remover-mesa {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border-radius: 50%;
+    background-color: rgba(247, 90, 104, 0.15);
+    color: var(--danger);
+    border: none;
+    font-size: 0.65rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.mesas-list li:hover .btn-remover-mesa {
+    opacity: 1;
+}
+
+.mesas-list li.mesa-vazia {
+    grid-column: 1 / -1;
+    aspect-ratio: auto;
+    cursor: default;
+    color: var(--text-muted);
+    background-color: transparent;
+    border-style: dashed;
+}
+
+.mesas-list li.mesa-vazia:hover {
+    transform: none;
+    border-color: var(--border-color);
+    background-color: transparent;
+}
+
+.mesas-list li:last-child {
+    border-bottom: 1px solid var(--border-color);
+}
+
+@media (max-width: 480px) {
+    .mesas-list {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
-async function salvarEstadoDaMesa() {
-    if (!mesaAtiva) return;
-    const descricaoMesa = document.getElementById('descricao-mesa').value;
-    const mesaParaAtualizar = { ...mesaAtiva, pedido: vendaAtual, descricao: descricaoMesa };
-
-    try {
-        await atualizarDados(STORE_MESAS, mesaAtiva.id, mesaParaAtualizar);
-        await carregarEAtualizarMesas(); 
-    } catch (error) {}
+/* --- PAINEL DE CONTROLE DE VENDAS --- */
+.status-badge {
+    background-color: rgba(78, 89, 255, 0.15);
+    color: #9aa1ff;
+    padding: 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    border: 1px solid rgba(78, 89, 255, 0.3);
+    text-align: center;
 }
 
-function calcularTotalPagamento() {
-    subtotalBruto = vendaAtual.reduce((total, item) => total + item.totalItem, 0) || 0;
-    const formaPagamento = document.getElementById('select-forma-pagamento').value;
-    let taxaPercentual = 0;
-
-    if (formaPagamento === 'debito') taxaPercentual = TAXA_DEBITO;
-    else if (formaPagamento === 'credito') taxaPercentual = TAXA_CREDITO;
-
-    const valorTaxa = subtotalBruto * taxaPercentual;
-    const totalFinal = subtotalBruto + valorTaxa;
-
-    document.getElementById('subtotal-bruto').textContent = `R$ ${subtotalBruto.toFixed(2)}`;
-    document.getElementById('taxa-aplicada').textContent = `${(taxaPercentual * 100).toFixed(2)}%`;
-    document.getElementById('valor-taxa').textContent = `R$ ${valorTaxa.toFixed(2)}`;
-    document.getElementById('total-final').textContent = `R$ ${totalFinal.toFixed(2)}`;
-
-    // LÓGICA DO TROCO
-    const trocoRow = document.getElementById('troco-row');
-    const valorEntregueInput = document.getElementById('valor-entregue');
-    const resultadoTroco = document.getElementById('resultado-troco');
-
-    if (formaPagamento === 'dinheiro' && totalFinal > 0) {
-        trocoRow.style.display = 'flex';
-        const valorEntregue = parseFloat(valorEntregueInput.value) || 0;
-        
-        if (valorEntregue > totalFinal) {
-            const troco = valorEntregue - totalFinal;
-            resultadoTroco.innerHTML = `<span style="color: var(--text-muted)">Recebido: R$ ${valorEntregue.toFixed(2)} - Total: R$ ${totalFinal.toFixed(2)} = </span> <br><strong style="color: var(--success); font-size: 1.2rem;">Troco: R$ ${troco.toFixed(2)}</strong>`;
-        } else if (valorEntregue > 0 && valorEntregue < totalFinal) {
-            resultadoTroco.innerHTML = `<span style="color: var(--danger)">Faltam R$ ${(totalFinal - valorEntregue).toFixed(2)}</span>`;
-        } else {
-            resultadoTroco.textContent = '';
-        }
-    } else {
-        trocoRow.style.display = 'none';
-    }
-
-    return { subtotalBruto, formaPagamento, taxaPercentual, valorTaxa, totalFinal };
+.adicionar-produto-zone {
+    display: grid;
+    grid-template-columns: 1fr 100px auto;
+    gap: 15px;
+    margin-top: 20px;
 }
 
-function renderizarVendaAtual() {
-    const tbody = document.getElementById('tabela-venda').getElementsByTagName('tbody')[0];
-    tbody.innerHTML = '';
-    
-    if(vendaAtual.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Nenhum item lançado nesta mesa.</td></tr>';
-        calcularTotalPagamento();
-        return;
-    }
-
-    vendaAtual.forEach((item, i) => { 
-        const row = tbody.insertRow();
-        row.innerHTML = `
-            <td><strong>${item.nome}</strong></td>
-            <td>${item.quantidade}</td>
-            <td>R$ ${item.preco.toFixed(2)}</td>
-            <td style="color: var(--gold)">R$ ${item.totalItem.toFixed(2)}</td>
-            <td style="text-align: center;"><button onclick="removerItemVenda(${i})" class="btn-remover">Remover</button></td> 
-        `;
-    });
-
-    calcularTotalPagamento();
+/* --- TABELAS --- */
+.table-responsive {
+    overflow-x: auto;
+    margin: 15px 0;
 }
 
-async function finalizarVenda() {
-    if (!mesaAtiva) {
-        showToast("Nenhuma mesa está ativa para ser finalizada.", "warning");
-        return;
-    }
-    if (vendaAtual.length === 0) {
-        showToast("A venda desta mesa não tem itens para finalizar.", "warning");
-        return;
-    }
-    const { subtotalBruto, formaPagamento, taxaPercentual, valorTaxa, totalFinal } = calcularTotalPagamento();
-
-    const novaVenda = {
-        data: new Date().toLocaleString('pt-BR'),
-        mesa: mesaAtiva.nome,
-        descricao: mesaAtiva.descricao || '', 
-        itens: vendaAtual,
-        subtotalBruto: subtotalBruto,
-        formaPagamento: formaPagamento,
-        taxaAplicada: taxaPercentual,
-        valorTaxa: valorTaxa,
-        totalFinal: totalFinal,
-    };
-
-    try {
-        await inserirDados(STORE_VENDAS, novaVenda);
-        
-        const mesaFechada = { ...mesaAtiva, pedido: [], descricao: '' };
-        await atualizarDados(STORE_MESAS, mesaAtiva.id, mesaFechada);
-        
-        vendaAtual = [];
-        mesaAtiva = null;
-        
-        document.getElementById('mesa-ativa-status').textContent = `Nenhuma mesa ativa. Clique em uma mesa ao lado para começar.`;
-        document.getElementById('descricao-mesa').value = '';
-        document.getElementById('descricao-mesa').disabled = true;
-        document.getElementById('select-forma-pagamento').disabled = true;
-        
-        // Limpa o campo do troco
-        document.getElementById('valor-entregue').value = '';
-        document.getElementById('troco-row').style.display = 'none';
-        
-        renderizarVendaAtual(); 
-        await carregarEAtualizarHistorico();
-        await carregarEAtualizarMesas(); 
-        
-        showToast(`Venda finalizada com sucesso! Total: R$ ${totalFinal.toFixed(2)}`, "success");
-
-    } catch (error) {
-        showToast("Erro ao fechar a venda.", "error");
-    }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: rgba(0,0,0,0.1);
+    border-radius: 8px;
+    overflow: hidden;
 }
 
-// =========================================================
-// 6. FUNÇÕES DE ESTOQUE (COMPRAS E CONTROLE)
-// =========================================================
-function atualizarPreviewEstoque() {
-    const produtoId = document.getElementById('est-produto').value;
-    const qtdCaixas = parseFloat(document.getElementById('est-qtd-caixas').value) || 0;
-    const valorCaixa = parseFloat(document.getElementById('est-valor-caixa').value) || 0;
-    const valorVenda = parseFloat(document.getElementById('est-valor-venda').value) || 0;
-    const previewEl = document.getElementById('est-preview');
-
-    const produto = produtosCadastrados.find(p => p.id === produtoId);
-
-    if (!produto || qtdCaixas <= 0 || valorCaixa <= 0 || valorVenda <= 0) {
-        previewEl.innerHTML = '<p style="color: var(--text-muted)">Selecione um produto e informe os valores para ver a estimativa de lucro.</p>';
-        return;
-    }
-
-    const unidadesPorCaixa = produto.unidadesPorCaixa || 1;
-    const totalUnidades = qtdCaixas * unidadesPorCaixa;
-    const custoUnidade = valorCaixa / unidadesPorCaixa;
-    const lucroUnidade = valorVenda - custoUnidade;
-    const lucroCaixa = lucroUnidade * unidadesPorCaixa;
-    const lucroLoteTotal = lucroUnidade * totalUnidades;
-    const margem = valorVenda > 0 ? (lucroUnidade / valorVenda) * 100 : 0;
-    const corLucro = lucroUnidade >= 0 ? 'var(--success)' : 'var(--danger)';
-
-    previewEl.innerHTML = `
-        <div class="preview-grid">
-            <div><span>Custo por Unidade</span><strong>R$ ${custoUnidade.toFixed(2)}</strong></div>
-            <div><span>Lucro por Unidade</span><strong style="color: ${corLucro}">R$ ${lucroUnidade.toFixed(2)}</strong></div>
-            <div><span>Lucro por Caixa</span><strong style="color: ${corLucro}">R$ ${lucroCaixa.toFixed(2)}</strong></div>
-            <div><span>Lucro do Lote (${qtdCaixas} CX)</span><strong style="color: ${corLucro}">R$ ${lucroLoteTotal.toFixed(2)}</strong></div>
-            <div><span>Margem sobre a venda</span><strong style="color: ${corLucro}">${margem.toFixed(1)}%</strong></div>
-            <div><span>Total de Unidades</span><strong>${totalUnidades} un.</strong></div>
-        </div>
-    `;
+th, td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
 }
 
-async function registrarEntradaEstoque() {
-    const produtoId = document.getElementById('est-produto').value;
-    const qtdCaixasInput = document.getElementById('est-qtd-caixas');
-    const valorCaixaInput = document.getElementById('est-valor-caixa');
-    const valorVendaInput = document.getElementById('est-valor-venda');
+th {
+    background-color: #202024;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
 
-    const qtdCaixas = parseFloat(qtdCaixasInput.value);
-    const valorCaixa = parseFloat(valorCaixaInput.value);
-    const valorVenda = parseFloat(valorVendaInput.value);
+td {
+    color: #fff;
+}
 
-    const produto = produtosCadastrados.find(p => p.id === produtoId);
+/* --- ZONA DE CHECKOUT DO PEDIDO --- */
+.checkout-box {
+    background-color: #202024;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 25px;
+}
 
-    if (!produto) {
-        showToast("Selecione um produto cadastrado.", "warning");
-        return;
-    }
-    if (isNaN(qtdCaixas) || qtdCaixas <= 0 || isNaN(valorCaixa) || valorCaixa <= 0 || isNaN(valorVenda) || valorVenda <= 0) {
-        showToast("Preencha a quantidade de caixas, o valor pago e o valor de venda.", "warning");
-        return;
-    }
+.subtotal-row, .total-row, .pagamento-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
 
-    const unidadesPorCaixa = produto.unidadesPorCaixa || 1;
-    const totalUnidades = qtdCaixas * unidadesPorCaixa;
-    const custoUnidade = valorCaixa / unidadesPorCaixa;
-    const lucroUnidade = valorVenda - custoUnidade;
-    const lucroCaixa = lucroUnidade * unidadesPorCaixa;
-    const lucroLoteTotal = lucroUnidade * totalUnidades;
-    const valorTotalPago = valorCaixa * qtdCaixas;
+.subtotal-row span:first-child { color: var(--text-muted); }
+#subtotal-bruto { font-size: 1.15rem; color: #fff; font-weight: 500;}
 
-    const novaEntrada = {
-        data: new Date().toLocaleString('pt-BR'),
-        produtoId: produto.id,
-        produtoNome: produto.nome,
-        tamanho: produto.tamanho || '—',
-        unidadesPorCaixa,
-        quantidadeCaixas: qtdCaixas,
-        totalUnidades,
-        valorCaixa,
-        valorTotalPago,
-        valorVendaUnidade: valorVenda,
-        custoUnidade,
-        lucroUnidade,
-        lucroCaixa,
-        lucroLoteTotal
-    };
+.taxas-info {
+    border-top: 1px dashed var(--border-color);
+    border-bottom: 1px dashed var(--border-color);
+    padding: 12px 0;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
 
-    try {
-        await inserirDados(STORE_ESTOQUE, novaEntrada);
+#taxa-aplicada { color: var(--danger); font-weight: 500; }
+#valor-taxa { color: var(--text-main); }
 
-        // Atualiza o preço de venda atual do produto, caso tenha sido alterado aqui
-        if (valorVenda !== produto.preco) {
-            await atualizarDados(STORE_PRODUTOS, produto.id, { ...produto, preco: valorVenda });
-        }
+.total-row {
+    margin-top: 5px;
+    margin-bottom: 25px;
+}
+.total-row span:first-child { font-size: 1.3rem; font-weight: 600; color: #fff; }
+#total-final { font-size: 1.8rem; font-weight: 700; color: var(--gold); }
 
-        qtdCaixasInput.value = 1;
-        valorCaixaInput.value = '';
-        showToast(`Entrada registrada! Lucro estimado do lote: R$ ${lucroLoteTotal.toFixed(2)}`, "success");
+.btn-checkout {
+    background: linear-gradient(90deg, #00b37e, #029469);
+    color: white;
+    width: 100%;
+    padding: 16px;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 179, 126, 0.3);
+}
+.btn-checkout:hover { background: var(--success-hover); }
 
-        await carregarEAtualizarProdutos();
-        await carregarEAtualizarEstoque();
-        atualizarPreviewEstoque();
-    } catch (error) {
-        showToast("Erro ao registrar entrada de estoque.", "error");
+/* --- HISTÓRICO --- */
+.historico-list {
+    list-style: none;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.historico-list li {
+    background-color: rgba(0,0,0,0.15);
+    border: 1px solid var(--border-color);
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+/* --- PREVIEW DE LUCRO (ESTOQUE) --- */
+.estoque-preview {
+    background-color: #202024;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.preview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+}
+
+.preview-grid div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.preview-grid span {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.preview-grid strong {
+    font-size: 1.1rem;
+    color: #fff;
+}
+
+@media (max-width: 700px) {
+    .preview-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
-async function removerCompraEstoque(id) {
-    if (!confirm("Tem certeza que deseja remover esta entrada de estoque?")) return;
-    try {
-        await deletarDados(STORE_ESTOQUE, id);
-        showToast("Entrada removida do estoque.", "success");
-        await carregarEAtualizarEstoque();
-    } catch (error) {
-        showToast("Erro ao remover entrada.", "error");
-    }
+/* --- CARDS DE RESUMO (RELATÓRIO) --- */
+.resumo-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 12px;
 }
 
-function calcularUnidadesVendidasPorProduto(vendas, produtoId) {
-    let total = 0;
-    vendas.forEach(v => {
-        (v.itens || []).forEach(item => {
-            if (item.id === produtoId) total += item.quantidade;
-        });
-    });
-    return total;
+.resumo-card {
+    background-color: #202024;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
-async function carregarEAtualizarEstoque() {
-    const [compras, vendas] = await Promise.all([
-        consultarTodos(STORE_ESTOQUE),
-        consultarTodos(STORE_VENDAS)
-    ]);
-    renderizarEstoqueAtual(produtosCadastrados, compras, vendas);
-    renderizarHistoricoCompras(compras);
+.resumo-card span {
+    color: var(--text-muted);
+    font-size: 0.85rem;
 }
 
-function renderizarEstoqueAtual(produtos, compras, vendas) {
-    const tbody = document.querySelector('#tabela-estoque tbody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    if (produtos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted)">Nenhum produto cadastrado ainda.</td></tr>';
-        return;
-    }
-
-    produtos.forEach(p => {
-        const comprasProduto = compras.filter(c => c.produtoId === p.id);
-        const unidadesCompradas = comprasProduto.reduce((t, c) => t + (c.totalUnidades || 0), 0);
-        const unidadesVendidas = calcularUnidadesVendidasPorProduto(vendas, p.id);
-        const estoqueAtual = unidadesCompradas - unidadesVendidas;
-        const unidadesPorCaixa = p.unidadesPorCaixa || 1;
-        const estoqueCaixas = (estoqueAtual / unidadesPorCaixa).toFixed(1);
-        const valorPotencial = estoqueAtual * (p.preco || 0);
-        const corEstoque = estoqueAtual <= 0
-            ? 'var(--danger)'
-            : (estoqueAtual <= unidadesPorCaixa ? 'var(--accent)' : 'var(--success)');
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><strong>${p.nome}</strong></td>
-            <td>${p.tamanho || '—'}</td>
-            <td>${unidadesPorCaixa}</td>
-            <td style="color: ${corEstoque}; font-weight: 600;">${estoqueAtual} un.</td>
-            <td>${estoqueCaixas} CX</td>
-            <td>R$ ${(p.preco || 0).toFixed(2)}</td>
-            <td style="color: var(--gold)">R$ ${valorPotencial.toFixed(2)}</td>
-        `;
-        tbody.appendChild(row);
-    });
+.resumo-card strong {
+    font-size: 1.5rem;
 }
 
-function renderizarHistoricoCompras(compras) {
-    const listaUl = document.getElementById('lista-historico-compras');
-    if (!listaUl) return;
-    listaUl.innerHTML = '';
-
-    if (compras.length === 0) {
-        listaUl.innerHTML = '<li style="color: var(--text-muted)">Nenhuma compra registrada ainda.</li>';
-        return;
-    }
-
-    compras.sort((a, b) => new Date(b.data) - new Date(a.data)).forEach(c => {
-        listaUl.innerHTML += `
-            <li>
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 5px;">
-                    <span style="color: var(--gold)">📦 ${c.produtoNome} (${c.tamanho})</span>
-                    <span style="color: var(--text-muted)">⏰ ${c.data}</span>
-                </div>
-                <span>${c.quantidadeCaixas} CX × ${c.unidadesPorCaixa} un. = ${c.totalUnidades} un. | Pago: R$ ${c.valorTotalPago.toFixed(2)}</span><br>
-                <span>Venda: R$ ${c.valorVendaUnidade.toFixed(2)}/un | <strong style="color: var(--success)">Lucro estimado do lote: R$ ${c.lucroLoteTotal.toFixed(2)}</strong></span>
-                <div style="margin-top: 8px; text-align: right;">
-                    <button onclick="removerCompraEstoque('${c.id}')" class="btn-remover">Remover</button>
-                </div>
-            </li>
-        `;
-    });
+.resumo-card small {
+    color: var(--text-muted);
+    font-size: 0.75rem;
 }
 
-// =========================================================
-// 7. RELATÓRIO GERAL
-// =========================================================
-async function carregarEAtualizarRelatorio() {
-    const [produtos, compras, vendas] = await Promise.all([
-        consultarTodos(STORE_PRODUTOS),
-        consultarTodos(STORE_ESTOQUE),
-        consultarTodos(STORE_VENDAS)
-    ]);
-    renderizarResumoRelatorio(compras, vendas);
-    renderizarDesempenhoPorProduto(produtos, compras, vendas);
+@media (max-width: 900px) {
+    .resumo-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-function renderizarResumoRelatorio(compras, vendas) {
-    const totalVendasCount = vendas.length;
-    const totalBruto = vendas.reduce((t, v) => t + (v.subtotalBruto || 0), 0);
-    const totalLiquido = vendas.reduce((t, v) => t + (v.totalFinal || 0), 0);
-    const totalInvestido = compras.reduce((t, c) => t + (c.valorTotalPago || 0), 0);
-    const totalCaixasCompradas = compras.reduce((t, c) => t + (c.quantidadeCaixas || 0), 0);
-    const lucroEstimado = totalLiquido - totalInvestido;
-    const ticketMedio = totalVendasCount > 0 ? totalLiquido / totalVendasCount : 0;
-    const corLucro = lucroEstimado >= 0 ? 'var(--success)' : 'var(--danger)';
-
-    const container = document.getElementById('resumo-relatorio');
-    if (!container) return;
-    container.innerHTML = `
-        <div class="resumo-card">
-            <span>Total Vendido (Líquido)</span>
-            <strong style="color: var(--gold)">R$ ${totalLiquido.toFixed(2)}</strong>
-            <small>${totalVendasCount} venda(s) • Bruto R$ ${totalBruto.toFixed(2)}</small>
-        </div>
-        <div class="resumo-card">
-            <span>Total Investido em Compras</span>
-            <strong>R$ ${totalInvestido.toFixed(2)}</strong>
-            <small>${totalCaixasCompradas} caixa(s) compradas</small>
-        </div>
-        <div class="resumo-card">
-            <span>Lucro Estimado</span>
-            <strong style="color: ${corLucro}">R$ ${lucroEstimado.toFixed(2)}</strong>
-            <small>Vendido − Investido</small>
-        </div>
-        <div class="resumo-card">
-            <span>Ticket Médio</span>
-            <strong>R$ ${ticketMedio.toFixed(2)}</strong>
-            <small>por venda finalizada</small>
-        </div>
-    `;
+@media (max-width: 500px) {
+    .resumo-grid { grid-template-columns: 1fr; }
 }
 
-function renderizarDesempenhoPorProduto(produtos, compras, vendas) {
-    const tbody = document.querySelector('#tabela-relatorio-produtos tbody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
-
-    if (produtos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted)">Nenhum produto cadastrado ainda.</td></tr>';
-        return;
-    }
-
-    produtos.forEach(p => {
-        const unidVendidas = calcularUnidadesVendidasPorProduto(vendas, p.id);
-        const receitaVendida = vendas.reduce((t, v) => {
-            const itensDoProduto = (v.itens || []).filter(i => i.id === p.id);
-            return t + itensDoProduto.reduce((s, i) => s + i.totalItem, 0);
-        }, 0);
-
-        const comprasProduto = compras.filter(c => c.produtoId === p.id);
-        const unidComprasTotal = comprasProduto.reduce((t, c) => t + (c.totalUnidades || 0), 0);
-        const valorInvestidoProduto = comprasProduto.reduce((t, c) => t + (c.valorTotalPago || 0), 0);
-
-        const custoMedioUnidade = unidComprasTotal > 0 ? valorInvestidoProduto / unidComprasTotal : null;
-        const lucroEstimadoProduto = custoMedioUnidade !== null ? receitaVendida - (unidVendidas * custoMedioUnidade) : null;
-        const lucroTexto = lucroEstimadoProduto !== null ? `R$ ${lucroEstimadoProduto.toFixed(2)}` : '—';
-        const corLucro = (lucroEstimadoProduto !== null && lucroEstimadoProduto < 0) ? 'var(--danger)' : 'var(--success)';
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><strong>${p.nome}</strong> <small style="color: var(--text-muted)">(${p.tamanho || '—'})</small></td>
-            <td>${unidVendidas} un.</td>
-            <td style="color: var(--gold)">R$ ${receitaVendida.toFixed(2)}</td>
-            <td>${unidComprasTotal} un.</td>
-            <td>R$ ${valorInvestidoProduto.toFixed(2)}</td>
-            <td style="color: ${corLucro}">${lucroTexto}</td>
-        `;
-        tbody.appendChild(row);
-    });
+/* --- TOAST SYSTEM (SISTEMA DE AVISOS) --- */
+#toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-// =========================================================
-// 8. HISTÓRICO DE VENDAS E INICIALIZAÇÃO
-// =========================================================
-async function carregarEAtualizarHistorico() {
-    const historicoVendas = await consultarTodos(STORE_VENDAS);
-    const listaUl = document.getElementById('lista-historico');
-    listaUl.innerHTML = '';
-    
-    if(historicoVendas.length === 0) {
-        listaUl.innerHTML = '<li style="color: var(--text-muted)">Nenhuma venda registrada no histórico.</li>';
-        return;
-    }
-
-    historicoVendas.sort((a, b) => new Date(b.data) - new Date(a.data)).forEach(venda => { 
-        const idCurto = venda.id.substring(venda.id.length - 4).toUpperCase();
-        const descricaoTexto = venda.descricao ? `<br><small style="color: var(--accent)">📝 Obs: ${venda.descricao}</small>` : '';
-        const taxaDetalhe = venda.valorTaxa > 0 ? ` + Taxa (${(venda.taxaAplicada * 100).toFixed(2)}%): R$ ${venda.valorTaxa.toFixed(2)}` : '';
-        
-        listaUl.innerHTML += `
-            <li>
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 5px;">
-                    <span style="color: var(--gold)">📌 ID: ${idCurto} | Mesa: ${venda.mesa}</span>
-                    <span style="color: var(--text-muted)">⏰ ${venda.data}</span>
-                </div>
-                <span>Bruto: R$ ${venda.subtotalBruto.toFixed(2)}${taxaDetalhe}</span><br>
-                <span>Pagamento: <strong>${venda.formaPagamento.toUpperCase()}</strong> | <strong style="color: var(--success)">Líquido: R$ ${venda.totalFinal.toFixed(2)}</strong></span>
-                ${descricaoTexto}
-            </li>
-        `;
-    });
+.toast {
+    background-color: #202024;
+    color: #fff;
+    padding: 16px 24px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    border-left: 4px solid var(--primary);
+    min-width: 300px;
+    font-weight: 500;
+    animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        await carregarEAtualizarProdutos();
-        await carregarEAtualizarMesas();
-        await carregarEAtualizarHistorico();
-    } catch (error) {}
-    
-    document.getElementById('select-forma-pagamento').addEventListener('change', calcularTotalPagamento);
-    document.getElementById('descricao-mesa').addEventListener('change', salvarDescricaoMesa);
-    document.getElementById('valor-entregue').addEventListener('input', calcularTotalPagamento);
+.toast.success { border-left-color: var(--success); }
+.toast.error { border-left-color: var(--danger); }
+.toast.warning { border-left-color: var(--accent); }
 
-    document.getElementById('descricao-mesa').disabled = true;
-    document.getElementById('select-forma-pagamento').disabled = true;
-
-    document.getElementById('btn-cadastrar').addEventListener('click', cadastrarNovoProduto);
-    document.getElementById('btn-cadastrar-mesa').addEventListener('click', cadastrarNovaMesa); 
-    document.getElementById('btn-adicionar').addEventListener('click', adicionarItemVenda);
-    document.getElementById('btn-finalizar').addEventListener('click', finalizarVenda);
-
-    // Menu lateral (hambúrguer)
-    document.getElementById('btn-menu-toggle').addEventListener('click', abrirMenu);
-    document.getElementById('drawer-overlay').addEventListener('click', fecharMenu);
-    document.querySelectorAll('.drawer-link').forEach(link => {
-        link.addEventListener('click', () => mudarView(link.dataset.view));
-    });
-
-    // Cadastro de Produtos
-    document.getElementById('cad-tamanho').addEventListener('change', aplicarUnidadesPadrao);
-
-    // Estoque
-    document.getElementById('est-produto').addEventListener('change', () => {
-        const produtoId = document.getElementById('est-produto').value;
-        const produto = produtosCadastrados.find(p => p.id === produtoId);
-        if (produto) document.getElementById('est-valor-venda').value = produto.preco;
-        atualizarPreviewEstoque();
-    });
-    document.getElementById('est-qtd-caixas').addEventListener('input', atualizarPreviewEstoque);
-    document.getElementById('est-valor-caixa').addEventListener('input', atualizarPreviewEstoque);
-    document.getElementById('est-valor-venda').addEventListener('input', atualizarPreviewEstoque);
-    document.getElementById('btn-registrar-estoque').addEventListener('click', registrarEntradaEstoque);
-
-    calcularTotalPagamento();
-});
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
